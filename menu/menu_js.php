@@ -1,0 +1,190 @@
+<?php
+	include "./c.php";
+	$appid = "yourappid";
+	$appsecret = "yourappsecret";
+	$nbsp = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+	$wc = new wechat($appid,$appsecret);
+	if($_GET['data'])
+	  $data = $_GET['data'];
+	else 
+	  $data='{
+        "button":[{
+                "name" : "赞我一下",
+                "type" : "click",
+                "key"  : "support"
+                },{
+                "name" : "微信功能",
+                "sub_button": [{
+                        "name":"点歌",
+                        "type":"click",
+                        "key" :"music"
+                 },{
+                        "name":"新闻",
+                        "type":"click",
+                        "key" :"news"
+                },{
+                        "name":"视频",
+                        "type":"click",
+                        "key" :"video"
+                }]
+                }]
+                }';
+
+?>
+<head>
+	<meta charset="utf-8" />
+	<style>
+		#main{
+			border: 1px solid  #C0C0C0;
+			background: #F0F0F0;
+			width: 50%;
+			height:97% ;
+			position: absolute;
+			left: 26%;
+			top: 2%;
+		}
+		
+		#title{
+			color:#C0C0C0;
+			position: absolute;
+			text-align: center;
+			margin-top: 10px;
+			width: 100%;
+			font-family:"华文楷体";
+			font-size: 20px;
+			line-height: 32px;
+		}
+		
+		#content{
+			border: 1px solid  #C0C0C0;
+			position: relative;
+			top: 8%;
+			left: 28%;
+			width: 68%;
+			height: 90%;
+			background: white;
+			outline: none;
+		}
+		
+		#button{
+			position: absolute;
+			width:300px;
+			height: 100px;
+			margin-top:60px;
+			margin-left: 50px;
+		}
+		
+		input{
+			width: 120px;
+			height: 50px;
+			cursor: pointer;
+			color: white;
+			border: 1px  #B8B8B8 dashed;
+			border-radius: 40px;
+			background:   #D0D0D0;
+			display: block;
+			margin-top: 14px;
+		}
+	</style>
+</head>
+<body>
+	<div id="main">
+		<div id="title">微信公众号自定义菜单</div>
+		<div id="button">
+				<input id="create" type="button" value="create"  onclick="ccreate()">
+				<input id="select" type="button" value="select"  onclick="sselect()">
+				<input id="delete" type="button" value="delete"  onclick="ddelete()">
+				<input value="clear"  type="button" onclick="document.location='http://www.demonx.cn/weixin/test.php'">
+		</div>
+		<div id="content" contenteditable="true">
+			<?php
+				$option = $_GET['option'];
+				$ac	= $wc->getAccessToken();
+				switch($option){
+					case 'create':
+						//var_dump($data);
+						$url = "https://api.weixin.qq.com/cgi-bin/menu/create?access_token={$ac}";
+						$arr = $wc->httpRequest($url,$data);
+						if( $arr["errmsg"]=="ok")echo "创建成功";
+						else echo "创建失败";
+						//var_dump($arr);
+						break;
+
+					case 'select':
+						$url = "https://api.weixin.qq.com/cgi-bin/menu/get?access_token={$ac}";
+						$arr = $wc->httpRequest($url);
+						if($arr["errcode"]){echo "列表为空或者其他错误";}
+						//var_dump($arr['menu']['button']);
+						foreach($arr["menu"]["button"] as $key => $value){
+						    foreach($value as $key1 => $value1){
+							//如果存在子按钮
+						        if(is_array($value1) && count($value1)>0){
+						            foreach($value1 as $key2 => $value2){
+							        if(is_array($value2) && count($value2)>0){
+								    foreach($value2 as $key3 => $value3){
+							    		if($key3 == "name")$str.= "<br>".$nbsp."|---".$value3;
+							    		if($key3 == "key" )$str.="(".$value3.")<br>";
+									if($key3 == "url" )$str.="(".$value3.")<br>";
+							    		echo $str;
+							    		$str='';
+						    	            }
+								}
+							    }
+						        }
+							//如果不存在子按钮
+						        else {
+							    if($key1 == "name")$str.= "<br>|---".$value1;
+							    if($key1 == "key")$str.="(".$value1.")<br>";
+							    if($key1 == "url")$str.="(".$value1.")<br>";
+							    echo $str;
+							    $str='';
+						        }
+						    }
+						}
+						break;
+
+					case 'delete':
+						$url = "https://api.weixin.qq.com/cgi-bin/menu/delete?access_token={$ac}";
+						$arr = $wc->httpRequest($url);
+						if($arr["errmsg"] == "ok")echo "删除成功";
+						else echo "删除失败";
+						break;
+				}
+			?>
+		</div>
+	</div>
+	
+	<script>
+		var content = document.getElementById("content");
+
+		function ccreate(){
+		//获取content里的json
+		  var str = content.innerHTML;
+		  var a = str.indexOf('button');
+		  var b = str.indexOf('name');
+		  var c = str.indexOf('type');
+		  if(a>-1 && b>-1 && c>-1){
+		    //剔除所有html标签和空格
+		    var data = str.replace(/<.*?>/ig,"");
+		    data = data.replace(/&nbsp;/ig,"");
+		    //url编码
+		    alert(data);
+		    var url = encodeURI("http://www.demonx.cn/weixin/test.php?option=create&data="+data);
+		    document.location=url;
+		  }
+		  else 
+		    document.location="http://www.demonx.cn/weixin/test.php?option=create";
+		}
+		
+		function sselect(){
+			document.location="http://www.demonx.cn/weixin/test.php?option=select";
+		}
+		
+		function ddelete(){
+			confirm = confirm("确定要删除吗？");
+			if(confirm)document.location="http://www.demonx.cn/weixin/test.php?option=delete";
+			else return false;
+		}
+			
+	</script>
+</body>
