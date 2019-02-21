@@ -1,0 +1,132 @@
+<?php
+    class Wechat{
+        public function type($postObj){
+            switch($postObj->MsgType){
+                case 'text':
+                    $this->procText($postObj);
+                    break;
+                case 'image':
+                    $MediaId = $postObj->MediaId;
+                    $this->sendImage($postObj,$MediaId);
+                    break;
+                case 'video':
+                    $this->sendVideo($postObj);
+                    break;
+                case 'event':
+                    $this->procEvent($postObj);
+                    break;
+            }
+        }
+
+        public function procText($postObj){
+            switch($postObj->Content){
+                case '点歌':
+                    $musicArr = $this->getMusic();
+                    $content = "输入: music + 数字编号 选择歌曲:\n如: music1\n";
+                    for($i=0; $i<count($musicArr);$i++)
+                        $content .= ($i+1) .".". $musicArr[$i][Title] ."\n";
+                    $this->sendText($postObj, $content);
+                    break;
+
+                case '新闻':
+                    $newsArr = $this->getNews();
+                    $this->sendNews($postObj, $newsArr);
+                    break;
+
+                default:
+                    # music selection 
+                    if(preg_match('/^music(\d{1,})$/i', $postObj->Content, $matches)){
+                        $musicArr = $this->getMusic();
+                        $num = $matches[1] - 1;
+                        if($num < 0 )return false;
+                        $this->sendMusic($postObj, $musicArr[$num]);
+                    }
+
+                    # student score query
+                    if(preg_match('/^(\d{10})$/', $postObj->Content, $matches)){
+                        $content = shell_exec("python score/stuMark.py ".$matches[1]);
+                        $this->sendText($postObj, $content);
+                    }
+
+                    # default output
+                    else
+                        $content = "嗨, 欢迎来到Demon 公众号\n";
+                        $content .= "输入：点歌  \n可选择歌曲播放\n";
+                        $content .= "输入：学号  \n可查询近年成绩\n";
+                        $this->sendText($postObj, $content);
+                    break;
+            }
+        }
+
+        public function procEvent($postObj){
+            switch($postObj->Event){
+                case 'subscribe':
+                    $newsArr = $this->getNews();
+                    $this->sendNews($postObj, $newsArr);
+                    break;
+
+                case 'CLICK':
+                    switch($postObj->EventKey){
+                        case 'rank':
+                            $content = "姓名\t平均分(2017-2018学年)\n";
+                            $content .= shell_exec("bash score/avgRank.sh score/avgRank.txt" );
+                            $this->sendText($postObj, $content);
+                            break;
+                        case 'support':
+                            $content = "支付宝发红包啦！即日起还有机会额外获得余额宝";
+                            $content .= "消费红包！长按复制此消息，打开最新版支付宝就能领取！AnqHPz17Kz";
+                            $this->sendText($postObj, $content);
+                            break;
+                        case 'info':
+                            break;
+                    }
+            }
+        }
+
+
+        public function getMusic(){
+            $id = 0;
+            $musicArr = Array();
+            $files = scandir("data/music");
+            foreach($files as $k => $v){
+                if($v === "." || $v === "..")   continue;
+                $musicArr[$id] = Array();
+                $musicArr[$id][Id] = $id;
+                $musicArr[$id][Title] = $v;
+                $musicArr[$id][Description] = $v;
+                $musicArr[$id][MusicURL] = "http://d3m0n.hopto.org/v3/data/music/". $v;
+                $musicArr[$id][HQMusicUrl] = "http://d3m0n.hopto.org/v3/data/music/". $v;
+                ++$id;
+            }
+            return $musicArr;
+        }
+
+        public function getNews(){
+            $id = 0;
+            $newsArr = Array();
+            $newsArr[Articles] = Array();
+            $newsArr[Articles][0] = Array(
+                "Title" => "新闻测试 1",
+                "Description" => "新闻描述 1",
+                "PicUrl" => "http://d3m0n.hopto.org/v3/data/image/timg.jpg",
+                "Url" => "http://www.baidu.com",
+            );
+            $newsArr[Articles][1] = Array(
+                "Title" => "新闻测试 2",
+                "Description" => "新闻描述 2",
+                "PicUrl" => "http://d3m0n.hopto.org/v3/data/image/timg3.jpg",
+                "Url" => "http://www.qq.com",
+            );
+            $newsArr[Articles][2] = Array(
+                "Title" => "新闻测试 3",
+                "Description" => "新闻描述 3",
+                "PicUrl" => "http://d3m0n.hopto.org/v3/data/image/timg2.jpg",
+                "Url" => "http://www.qq.com",
+            );
+            $newsArr[ArticleCount] = 3;
+            return $newsArr;
+        }
+
+
+    }
+?>
