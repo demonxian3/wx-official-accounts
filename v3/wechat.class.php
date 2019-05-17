@@ -4,8 +4,8 @@
             $this->token = $token;
             $this->appid = $appid;
             $this->appsecret = $appsecret;
-            #$this->domain = "http://d3m0n.hopto.org";
-            $this->domain = "http://118.89.51.198";
+            
+            $this->domain = "http://xxx.xxx.xxx";
             $this->info = "嗨, %s \n".
             "******************************\n".
             "*  欢迎来到Demon贤公众号  *\n".
